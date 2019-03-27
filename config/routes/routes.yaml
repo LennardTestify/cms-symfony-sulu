@@ -28,3 +28,7 @@ apollo:
   defaults:
     path: /ncaevents/apollo
     permanent: true
+admin:
+  path: /admin/tracking
+  controller: App\Controller\AdminController::tracking
+
