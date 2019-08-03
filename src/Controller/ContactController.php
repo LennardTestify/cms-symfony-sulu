@@ -34,16 +34,18 @@ class ContactController extends AbstractController
         $message = $data['message'];
         $ip = $data['ip'] = $request->getClientIp();
 
-        if($name === '' || $email === '' || $message === '' || $ip === '') {
+        if($email === '') {
             return new JsonResponse(
-                'messagesAction has empty values',
+                'E-Mail ist leer',
                 400
             );
         }
 
-        if(!$spamProtection->validateUserInputs($data)) {
+
+        $notValidFields = $spamProtection->validateUserInputs($data);
+        if(!empty($notValidFields)) {
             return new JsonResponse(
-                'messagesAction detected as spam',
+                $notValidFields,
                 402
             );
         }
