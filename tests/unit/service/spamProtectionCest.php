@@ -17,7 +17,7 @@ class spamProtectionCest
     }
 
     // tests
-    public function validateUserInputsReturnTrueOnValidData(UnitTester $I)
+    public function validateUserInputsReturnEmptyArrayOnValidData(UnitTester $I)
     {
         $this->fixture = Stub::make(
             $this->fixture,
@@ -36,13 +36,13 @@ class spamProtectionCest
             'ip' => ''
         ];
 
-        $I->assertTrue($this->fixture->validateUserInputs($data));
+        $I->assertEmpty($this->fixture->validateUserInputs($data));
     }
 
-    public function validateNameEmptyIsFalse(UnitTester $I)
+    public function validateNameEmptyIsTrue(UnitTester $I)
     {
         $methodReturn = $I->getMethodReturn($this->fixture,'validateName', '');
-        $I->assertFalse($methodReturn);
+        $I->assertTrue($methodReturn);
     }
 
     public function validateNameIsSpam(UnitTester $I)
@@ -116,10 +116,10 @@ class spamProtectionCest
         $I->assertTrue($methodReturn);
     }
 
-    public function validateMessageEmptyReturnFalse(UnitTester $I)
+    public function validateMessageEmptyReturnTrue(UnitTester $I)
     {
         $methodReturn = $I->getMethodReturn($this->fixture,'validateMessage', '');
-        $I->assertFalse($methodReturn);
+        $I->assertTrue($methodReturn);
     }
 
     public function validateMessageSpamWordsReturnFalse(UnitTester $I)

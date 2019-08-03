@@ -15,35 +15,34 @@ class SpamProtection
         'script',
         'href'
     ];
+
     public function validateUserInputs(array $data) {
+        $notValidFields = [];
+
         // Validate name
         if(!$this->validateName($data['name'])) {
-            return false;
+            $notValidFields[] = 'name';
         }
 
         // Validate ip
         if(!$this->validateIp($data['ip'])) {
-            return false;
+            $notValidFields[] = 'ip';
         }
 
         // Validate email
         if(!$this->validateEmail($data['email'])) {
-            return false;
+            $notValidFields[] = 'email';
         }
 
         // Validate message
         if(!$this->validateMessage($data['message'])) {
-            return false;
+            $notValidFields[] = 'message';
         }
 
-        return true;
+        return $notValidFields;
     }
 
     protected function validateName(string $name) {
-        if($this->isEmptyString($name)) {
-            return false;
-        }
-
         if($this->isSpamString($name)) {
             return false;
         }
@@ -91,10 +90,6 @@ class SpamProtection
     }
 
     protected function validateMessage(string $message) {
-        if($this->isEmptyString($message)) {
-            return false;
-        }
-
         if($this->isSpamString($message)) {
             return false;
         }
