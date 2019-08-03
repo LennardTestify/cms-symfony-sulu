@@ -313,3 +313,6 @@
     white-space: inherit;
     text-align: center;
 }
+.form-control.email {
+    height: 20px;
+}
