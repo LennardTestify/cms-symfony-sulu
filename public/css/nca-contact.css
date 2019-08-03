@@ -146,14 +146,14 @@
 }
 .show-nca {
     display: block;
-    border: 2px solid green;
+    border: 2px solid #5ebb27;
     width: 48px;
     text-align: center;
     z-index: 99999;
     position: fixed;
     right: 0;
     top: 45%;
-    background: #008cd6;
+    background: #5ebb27;
     color: #000;
     border-radius: 0;
     padding: 8px;
@@ -164,7 +164,7 @@
     -webkit-transition: all 0.3s ease 0s;
     -o-transition: all 0.3s ease 0s;
 }
-#setting {
+.setting {
     font-size: 22px;
     padding: 0px;
     margin: 0px;
