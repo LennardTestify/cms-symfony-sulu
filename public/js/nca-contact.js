@@ -14,7 +14,6 @@ $(function() {
                 "message": message
             }
         );
-        console.log('data', data);
         $.ajax({
             type: "POST",
             url: url,
@@ -30,10 +29,9 @@ $(function() {
         return false;
     });
 
-    $("#hide, #show, .nca-contact").click(function(e) {
-        if ($("#show").is(":visible")) {
-
-            $("#show").animate({
+    $("#hide, .show-nca, .nca-contact").click(function(e) {
+        if ($(".show-nca").is(":visible")) {
+            $(".show-nca").animate({
                 "margin-right": "-400px"
             }, 500, function() {
                 $(this).hide();
@@ -43,12 +41,13 @@ $(function() {
                 "margin-right": "0px"
             }, 500).show();
         } else {
+            console.log('case 2');
             $("#switch").animate({
                 "margin-right": "-400px"
             }, 500, function() {
                 $(this).hide();
             });
-            $("#show").show().animate({
+            $(".show-nca").show().animate({
                 "margin-right": "0"
             }, 500);
         }
