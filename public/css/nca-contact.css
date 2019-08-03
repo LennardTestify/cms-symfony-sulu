@@ -316,3 +316,7 @@
 .form-control.email {
     height: 20px;
 }
+
+.nca-contact-error {
+    border: 1px solid red;
+}

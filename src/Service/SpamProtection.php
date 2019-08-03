@@ -78,7 +78,7 @@ class SpamProtection
     }
 
     protected function validateEmail(string $email) {
-        if($email === '') {
+        if($this->isSpamString($email)) {
             return false;
         }
 

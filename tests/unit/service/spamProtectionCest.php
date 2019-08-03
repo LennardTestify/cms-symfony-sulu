@@ -116,6 +116,12 @@ class spamProtectionCest
         $I->assertTrue($methodReturn);
     }
 
+    public function validateEmailSpamReturnFalse(UnitTester $I)
+    {
+        $methodReturn = $I->getMethodReturn($this->fixture,'validateEmail', 'viagra@testify.com');
+        $I->assertFalse($methodReturn);
+    }
+
     public function validateMessageEmptyReturnTrue(UnitTester $I)
     {
         $methodReturn = $I->getMethodReturn($this->fixture,'validateMessage', '');

@@ -5,15 +5,16 @@ $(function() {
         e.preventDefault();
         var url = "/api/contact"; // the script where you handle the form input.
 
-        var message = $('#reason').val() + '|' + $('#phone').val() + '|' + $('#messagefield').val();
-
         var data = JSON.stringify(
             {
-                "name": $("#namefield").val(),
-                "email": $('#emailfield').val(),
-                "message": message
+                "email": $('#email').val(),
+                "newsletter": $('#newsletter').val(),
+                "name": $("#name").val(),
+                "phone": $("#phone").val(),
+                "message": $("#message").val()
             }
         );
+
         $.ajax({
             type: "POST",
             url: url,
@@ -21,9 +22,16 @@ $(function() {
             dataType: "json",
             data: data,
         }).done(function (data) {
+            console.log('done', data);
             $("#nca-form").html("<div class='successMessage'>Danke wir melden uns</div>");
         }).fail(function (data) {
+            let returnedData = JSON.parse(data.responseText);
+            console.log('fail', data, returnedData);
 
+            returnedData["notValidFields"].forEach(function (element) {
+                console.log('element', element);
+                $("#" + element).addClass('nca-contact-error');
+            })
         });
 
         return false;

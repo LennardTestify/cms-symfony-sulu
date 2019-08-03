@@ -45,8 +45,10 @@ class ContactController extends AbstractController
         $notValidFields = $spamProtection->validateUserInputs($data);
         if(!empty($notValidFields)) {
             return new JsonResponse(
-                $notValidFields,
-                402
+                [
+                    'notValidFields' => $notValidFields
+                ],
+                404
             );
         }
 
