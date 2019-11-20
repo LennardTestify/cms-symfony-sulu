@@ -1,0 +1,53 @@
+framework:
+    secret: secret
+    router: { resource: '%kernel.project_dir%/config/routing.yml' }
+    test: ~
+    session:
+        storage_id: session.storage.mock_file
+    profiler:
+        enabled: false
+
+doctrine:
+    orm:
+        auto_generate_proxy_classes: "%kernel.debug%"
+        naming_strategy: doctrine.orm.naming_strategy.underscore
+        auto_mapping: true
+        mappings:
+            gedmo_tree:
+                type: xml
+                prefix: Gedmo\Tree\Entity
+                dir: '%kernel.root_dir%/../../../../../../vendor/gedmo/doctrine-extensions/lib/Gedmo/Tree/Entity'
+                alias: GedmoTree
+                is_bundle: false
+    dbal:
+        url: '%database.url%'
+        charset: '%database.charset%'
+        default_table_options:
+            charset: '%database.charset%'
+            collate: '%database.collate%'
+
+sulu_document_manager:
+    sessions:
+        default:
+            backend:
+                type: '%phpcr.transport%'
+                url:  '%phpcr.backend_url%'
+            workspace: '%phpcr.workspace%'
+            username: '%phpcr.username%'
+            password: '%phpcr.password%'
+        live:
+            backend:
+                type: '%phpcr.transport%'
+                url:  '%phpcr.backend_url%'
+            workspace: '%phpcr.workspace%_live'
+            username: '%phpcr.username%'
+            password: '%phpcr.password%'
+    debug: false
+
+jms_serializer:
+    metadata:
+        debug: '%kernel.debug%'
+
+swiftmailer:
+    url: 'null://localhost'
+    spool: { type: 'memory' }

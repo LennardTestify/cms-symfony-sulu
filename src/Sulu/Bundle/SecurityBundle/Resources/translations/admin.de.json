@@ -1,0 +1,19 @@
+{
+    "sulu_security.roles": "Benutzerrollen",
+    "sulu_security.user_name": "Username",
+    "sulu_security.enable_user": "Benutzer aktivieren",
+    "sulu_security.user_locked": "Benutzer gesperrt",
+    "sulu_security.permissions": "Berechtigungen",
+    "sulu_security.password": "Passwort",
+    "sulu_security.email": "Email",
+    "sulu_security.system": "System",
+    "sulu_security.system_language": "Systemsprache",
+    "sulu_security.reset_mail_subject": "Sulu Password zurücksetzen",
+    "sulu_security.reset_mail_message": "Klicken Sie auf den folgenden Link oder kopieren Sie ihn in Ihren Browser um Ihr Sulu Passwort zurückzusetzen:",
+    "sulu_security.view": "Ansehen",
+    "sulu_security.add": "Hinzufügen",
+    "sulu_security.edit": "Bearbeiten",
+    "sulu_security.delete": "Löschen",
+    "sulu_security.live": "Live",
+    "sulu_security.security": "Sicherheit"
+}

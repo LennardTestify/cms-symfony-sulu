@@ -1,0 +1,174 @@
+<?php
+
+/*
+ * This file is part of Sulu.
+ *
+ * (c) Sulu GmbH
+ *
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ */
+
+namespace Sulu\Bundle\SearchBundle\Controller;
+
+use FOS\RestBundle\Context\Context;
+use FOS\RestBundle\View\View;
+use FOS\RestBundle\View\ViewHandlerInterface;
+use Massive\Bundle\SearchBundle\Search\Metadata\ProviderInterface;
+use Massive\Bundle\SearchBundle\Search\SearchManagerInterface;
+use Pagerfanta\Adapter\ArrayAdapter;
+use Pagerfanta\Pagerfanta;
+use Sulu\Bundle\SearchBundle\Search\Configuration\IndexConfiguration;
+use Sulu\Bundle\SearchBundle\Search\Configuration\IndexConfigurationProviderInterface;
+use Sulu\Component\Rest\ListBuilder\ListRestHelperInterface;
+use Sulu\Component\Rest\ListBuilder\PaginatedRepresentation;
+use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Component\Security\Authorization\SecurityCheckerInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class SearchController
+{
+    /**
+     * @var SearchManagerInterface
+     */
+    private $searchManager;
+
+    /**
+     * @var ProviderInterface
+     */
+    private $metadataProvider;
+
+    /**
+     * @var SecurityCheckerInterface
+     */
+    private $securityChecker;
+
+    /**
+     * @var ViewHandlerInterface
+     */
+    private $viewHandler;
+
+    /**
+     * @var ListRestHelperInterface
+     */
+    private $listRestHelper;
+
+    /**
+     * @var IndexConfigurationProviderInterface
+     */
+    private $indexConfigurationProvider;
+
+    public function __construct(
+        SearchManagerInterface $searchManager,
+        ProviderInterface $metadataProvider,
+        SecurityCheckerInterface $securityChecker,
+        ViewHandlerInterface $viewHandler,
+        ListRestHelperInterface $listRestHelper,
+        IndexConfigurationProviderInterface $indexConfigurationProvider
+    ) {
+        $this->searchManager = $searchManager;
+        $this->metadataProvider = $metadataProvider;
+        $this->securityChecker = $securityChecker;
+        $this->viewHandler = $viewHandler;
+        $this->listRestHelper = $listRestHelper;
+        $this->indexConfigurationProvider = $indexConfigurationProvider;
+    }
+
+    /**
+     * Perform a search and return a JSON response.
+     *
+     * @param Request $request
+     *
+     * @return Response
+     */
+    public function searchAction(Request $request)
+    {
+        $queryString = $request->query->get('q');
+        $index = $request->query->get('index', null);
+        $locale = $request->query->get('locale', null);
+
+        $page = $this->listRestHelper->getPage();
+        $limit = $this->listRestHelper->getLimit();
+        $startTime = microtime(true);
+
+        $indexNames = $this->searchManager->getIndexNames();
+
+        $indexes = array_filter(
+            $index
+                ? [$index]
+                : array_map(function(IndexConfiguration $index) {
+                    return $index->getIndexName();
+                }, $this->getAllowedIndexes()),
+            function(string $indexName) use ($indexNames) {
+                return false !== array_search($indexName, $indexNames);
+            }
+        );
+
+        $query = $this->searchManager->createSearch($queryString);
+
+        if ($locale) {
+            $query->locale($locale);
+        }
+
+        $query->indexes($indexes);
+        $query->setLimit($limit);
+
+        $time = microtime(true) - $startTime;
+
+        $adapter = new ArrayAdapter(iterator_to_array($query->execute()));
+        $pager = new Pagerfanta($adapter);
+        $pager->setMaxPerPage($limit);
+        $pager->setCurrentPage($page);
+
+        $representation = new PaginatedRepresentation(
+            $pager->getCurrentPageResults(),
+            'result',
+            (int) $page,
+            (int) $limit,
+            $adapter->getNbResults()
+        );
+
+        $view = View::create($representation);
+        $context = new Context();
+        $context->enableMaxDepth();
+        $view->setContext($context);
+
+        return $this->viewHandler->handle($view);
+    }
+
+    /**
+     * Return a JSON encoded scalar array of index names.
+     *
+     * @return Response
+     */
+    public function indexesAction()
+    {
+        return $this->viewHandler->handle(
+            View::create(
+                [
+                    '_embedded' => [
+                        'search_indexes' => array_values($this->getAllowedIndexes()),
+                    ],
+                ]
+            )
+        );
+    }
+
+    /**
+     * @return IndexConfiguration[]
+     */
+    private function getAllowedIndexes()
+    {
+        return array_filter(
+            $this->indexConfigurationProvider->getIndexConfigurations(),
+            function(IndexConfiguration $indexConfiguration) {
+                $securityContext = $indexConfiguration->getSecurityContext();
+                $contexts = $indexConfiguration->getContexts();
+
+                return $this->securityChecker->hasPermission($securityContext, PermissionTypes::VIEW)
+                    && empty($contexts) || false !== array_search('admin', $contexts);
+            }
+        );
+    }
+}

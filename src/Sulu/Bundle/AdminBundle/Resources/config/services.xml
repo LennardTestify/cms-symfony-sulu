@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<container xmlns="http://symfony.com/schema/dic/services" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+    <parameters>
+        <parameter key="sulu_admin.admin_controller.class">Sulu\Bundle\AdminBundle\Controller\AdminController</parameter>
+        <parameter key="sulu_admin.admin_pool.class">Sulu\Bundle\AdminBundle\Admin\AdminPool</parameter>
+    </parameters>
+
+    <services>
+        <service id="sulu_admin.admin_controller" class="%sulu_admin.admin_controller.class%" public="true">
+            <argument type="service" id="router"/>
+            <argument type="service" id="security.token_storage"/>
+            <argument type="service" id="sulu_admin.admin_pool"/>
+            <argument type="service" id="jms_serializer"/>
+            <argument type="service" id="fos_rest.view_handler"/>
+            <argument type="service" id="twig"/>
+            <argument type="service" id="translator.default"/>
+            <argument type="service" id="sulu_admin.metadata_provider_registry"/>
+            <argument type="service" id="sulu_admin.view_registry"/>
+            <argument type="service" id="sulu_admin.navigation_registry"/>
+            <argument type="service" id="sulu_admin.field_type_option_registry"/>
+            <argument type="service" id="sulu_contact.contact_manager" />
+            <argument type="service" id="sulu_page.smart_content.data_provider_pool" />
+            <argument type="service" id="sulu_markup.link_tag.provider_pool"/>
+            <argument>%kernel.environment%</argument>
+            <argument>%sulu.version%</argument>
+            <argument>%app.version%</argument>
+            <argument>%sulu_admin.resources%</argument>
+            <argument>%sulu_core.locales%</argument>
+            <argument>%sulu_core.translations%</argument>
+            <argument>%sulu_core.fallback_locale%</argument>
+            <argument>%sulu_admin.collaboration_interval%</argument>
+
+            <tag name="sulu.context" context="admin"/>
+        </service>
+        <service id="sulu_admin.admin_pool" class="%sulu_admin.admin_pool.class%" public="true"/>
+
+        <service
+            id="sulu_admin.metadata_provider_registry"
+            class="Sulu\Bundle\AdminBundle\Metadata\MetadataProviderRegistry"
+        />
+
+        <service
+            id="sulu_admin.form_metadata_provider"
+            class="Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadataProvider"
+        >
+            <argument type="service" id="sulu_core.expression_language" />
+            <argument type="tagged" tag="sulu_admin.form_metadata_loader"></argument>
+            <tag name="sulu_admin.metadata_provider" type="form" />
+        </service>
+
+        <service
+            id="sulu_admin.xml_form_metadata_loader"
+            class="Sulu\Bundle\AdminBundle\Metadata\FormMetadata\XmlFormMetadataLoader"
+        >
+            <argument type="service" id="sulu_admin.form_metadata.form_xml_loader"/>
+            <argument>%sulu_admin.forms.directories%</argument>
+            <argument>%sulu.cache_dir%/forms</argument>
+            <argument>%kernel.debug%</argument>
+            <tag name="sulu_admin.form_metadata_loader"/>
+            <tag name="kernel.cache_warmer" />
+        </service>
+
+        <service
+            id="sulu_admin.list_metadata_provider"
+            class="Sulu\Bundle\AdminBundle\Metadata\ListMetadata\ListMetadataProvider"
+        >
+            <argument type="tagged" tag="sulu_admin.list_metadata_loader"></argument>
+            <tag name="sulu_admin.metadata_provider" type="list" />
+        </service>
+
+        <service
+            id="sulu_admin.xml_list_metadata_loader"
+            class="Sulu\Bundle\AdminBundle\Metadata\ListMetadata\XmlListMetadataLoader"
+        >
+            <argument type="service" id="sulu_core.list_builder.field_descriptor_factory" />
+            <argument type="service" id="translator.default"/>
+            <tag name="sulu_admin.list_metadata_loader"/>
+        </service>
+
+        <service id="sulu_admin.view_builder_factory" class="Sulu\Bundle\AdminBundle\Admin\View\ViewBuilderFactory" />
+        <service
+            id="Sulu\Bundle\AdminBundle\Admin\View\ViewBuilderFactoryInterface"
+            alias="sulu_admin.view_builder_factory"
+        />
+
+        <service id="sulu_admin.form_metadata.form_xml_loader" class="Sulu\Bundle\AdminBundle\FormMetadata\FormXmlLoader">
+            <argument type="service" id="sulu_page.structure.properties_xml_parser"/>
+            <argument type="service" id="sulu_page.structure.schema_xml_parser"/>
+            <argument>%sulu_core.locales%</argument>
+            <argument type="service" id="sulu_admin.form_metadata.form_metadata_mapper"/>
+        </service>
+
+        <service
+            id="sulu_admin.form_metadata.form_metadata_mapper"
+            class="Sulu\Bundle\AdminBundle\FormMetadata\FormMetadataMapper"/>
+
+        <service id="sulu_admin.structure_form_metadata_loader" class="Sulu\Bundle\AdminBundle\Metadata\FormMetadata\StructureFormMetadataLoader">
+            <argument type="service" id="sulu_page.structure.factory"/>
+            <argument type="service" id="sulu_admin.form_metadata.form_metadata_mapper"/>
+            <argument type="service" id="sulu_core.webspace.webspace_manager"/>
+            <argument>%sulu_core.locales%</argument>
+            <argument>%sulu.cache_dir%/form-structures</argument>
+            <argument>%kernel.debug%</argument>
+            <tag name="sulu_admin.form_metadata_loader"/>
+            <tag name="kernel.cache_warmer" />
+        </service>
+
+        <service id="sulu_admin.view_registry" class="Sulu\Bundle\AdminBundle\Admin\View\ViewRegistry">
+            <argument type="service" id="sulu_admin.admin_pool"/>
+        </service>
+
+        <service id="sulu_admin.navigation_registry" class="Sulu\Bundle\AdminBundle\Admin\Navigation\NavigationRegistry">
+            <argument type="service" id="translator"/>
+            <argument type="service" id="sulu_admin.admin_pool"/>
+            <argument type="service" id="sulu_admin.view_registry"/>
+        </service>
+
+        <service
+            id="sulu_admin.field_type_option_registry"
+            class="Sulu\Bundle\AdminBundle\FieldType\FieldTypeOptionRegistry"
+        />
+
+        <service
+            id="sulu_admin.collaboration_controller"
+            class="Sulu\Bundle\AdminBundle\Controller\CollaborationController"
+            public="true"
+        >
+            <argument type="service" id="security.token_storage" />
+            <argument type="service" id="sulu_admin.collaboration_repository" />
+            <argument type="service" id="fos_rest.view_handler"/>
+            <argument>%kernel.secret%</argument>
+            <tag name="sulu.context" context="admin"/>
+        </service>
+
+        <service
+            id="sulu_admin.collaboration_repository"
+            class="Sulu\Bundle\AdminBundle\Entity\CollaborationRepository"
+        >
+            <argument type="service" id="sulu_admin.collaboration_cache"/>
+            <argument>%sulu_admin.collaboration_threshold%</argument>
+        </service>
+
+        <service id="sulu_admin.schema_handler" class="Sulu\Bundle\AdminBundle\Serializer\Handler\SchemaHandler">
+            <tag name="jms_serializer.subscribing_handler"/>
+        </service>
+
+        <service id="sulu_admin.dropdown_toolbar_action_subscriber"
+            class="Sulu\Bundle\AdminBundle\Serializer\Subscriber\DropdownToolbarActionSubscriber"
+        >
+            <argument type="service" id="translator"/>
+            <tag name="jms_serializer.event_subscriber"/>
+        </service>
+
+        <service id="sulu_admin.toggler_toolbar_action_subscriber"
+            class="Sulu\Bundle\AdminBundle\Serializer\Subscriber\TogglerToolbarActionSubscriber"
+        >
+            <argument type="service" id="translator"/>
+            <tag name="jms_serializer.event_subscriber"/>
+        </service>
+
+        <service id="sulu_admin.download_build_command" class="Sulu\Bundle\AdminBundle\Command\DownloadBuildCommand">
+            <argument type="service" id="http_client" />
+            <argument>%kernel.project_dir%</argument>
+            <argument>%sulu.version%</argument>
+            <tag name="console.command"/>
+        </service>
+    </services>
+</container>

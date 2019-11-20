@@ -1,0 +1,14 @@
+**/node_modules/
+**/vendor/
+**/flow-typed/
+styleguide/
+**/build/admin/
+
+.circleci/
+.git/
+.github/
+bin/
+config/
+public/
+templates/
+var/

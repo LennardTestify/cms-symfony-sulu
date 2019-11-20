@@ -1,0 +1,362 @@
+<?php
+
+/*
+ * This file is part of Sulu.
+ *
+ * (c) Sulu GmbH
+ *
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ */
+
+namespace Sulu\Bundle\PageBundle\Command;
+
+use Sulu\Component\Content\Compat\StructureManagerInterface;
+use Sulu\Component\Content\Metadata\Factory\StructureMetadataFactoryInterface;
+use Sulu\Component\Webspace\Manager\WebspaceManagerInterface;
+use Sulu\Component\Webspace\StructureProvider\WebspaceStructureProvider;
+use Sulu\Component\Webspace\Webspace;
+use Symfony\Bundle\FrameworkBundle\Controller\ControllerNameParser;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+use Twig\Environment;
+
+class ValidateWebspacesCommand extends Command
+{
+    protected static $defaultName = 'sulu:content:validate:webspaces';
+
+    /**
+     * @var OutputInterface
+     */
+    private $output;
+
+    /**
+     * @var Environment
+     */
+    private $twig;
+
+    /**
+     * @var StructureMetadataFactoryInterface
+     */
+    private $structureMetadataFactory;
+
+    /**
+     * @var ControllerNameParser
+     */
+    private $controllerNameConverter;
+
+    /**
+     * @var StructureManagerInterface
+     */
+    private $structureManager;
+
+    /**
+     * @var WebspaceStructureProvider
+     */
+    private $structureProvider;
+
+    /**
+     * @var array
+     */
+    private $errors = [];
+
+    /**
+     * @var string
+     */
+    private $activeTheme;
+
+    /**
+     * @var WebspaceManagerInterface
+     */
+    private $webspaceManager;
+
+    public function __construct(
+        Environment $twig,
+        StructureMetadataFactoryInterface $structureMetadataFactory,
+        ControllerNameParser $controllerNameConverter,
+        StructureManagerInterface $structureManager,
+        WebspaceStructureProvider $structureProvider,
+        WebspaceManagerInterface $webspaceManager,
+        $activeTheme = null
+    ) {
+        parent::__construct();
+
+        $this->twig = $twig;
+        $this->structureMetadataFactory = $structureMetadataFactory;
+        $this->controllerNameConverter = $controllerNameConverter;
+        $this->structureManager = $structureManager;
+        $this->structureProvider = $structureProvider;
+        $this->activeTheme = $activeTheme;
+        $this->webspaceManager = $webspaceManager;
+    }
+
+    protected function configure()
+    {
+        $this->setDescription('Dumps webspaces and will show an error when template could not be loaded');
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output)
+    {
+        $this->output = $output;
+
+        /** @var Webspace[] $webspaces */
+        $webspaces = $this->webspaceManager->getWebspaceCollection();
+
+        $messages = '';
+
+        foreach ($webspaces as $webspace) {
+            if (null !== $this->activeTheme) {
+                $this->activeTheme->setName($webspace->getTheme());
+            }
+
+            $this->outputWebspace($webspace);
+        }
+
+        $output->writeln($messages);
+
+        if (count($this->errors)) {
+            $this->output->writeln(sprintf('<error>%s Errors found.</error>', count($this->errors)));
+
+            return 1;
+        }
+    }
+
+    /**
+     * Output webspace.
+     *
+     * @param Webspace $webspace
+     */
+    private function outputWebspace(Webspace $webspace)
+    {
+        $this->output->writeln(
+            sprintf(
+                '<info>%s</info> - <info>%s</info>',
+                $webspace->getKey(),
+                $webspace->getName()
+            )
+        );
+
+        $this->outputWebspaceDefaultTemplates($webspace);
+        $this->outputWebspacePageTemplates($webspace);
+        $this->outputWebspaceTemplates($webspace);
+        $this->outputWebspaceLocalizations($webspace);
+    }
+
+    /**
+     * Output webspace default templates.
+     *
+     * @param Webspace $webspace
+     */
+    private function outputWebspaceDefaultTemplates(Webspace $webspace)
+    {
+        $this->output->writeln('Default Templates:');
+
+        foreach ($webspace->getDefaultTemplates() as $type => $template) {
+            $this->validatePageTemplate($type, $template);
+        }
+    }
+
+    /**
+     * Output webspace page templates.
+     *
+     * @param Webspace $webspace
+     */
+    private function outputWebspacePageTemplates(Webspace $webspace)
+    {
+        $this->output->writeln('Page Templates:');
+
+        $structures = $this->structureManager->getStructures();
+
+        $checkedTemplates = [];
+
+        foreach ($webspace->getDefaultTemplates() as $template) {
+            $checkedTemplates[] = $template;
+        }
+
+        foreach ($structures as $structure) {
+            $template = $structure->getKey();
+
+            if (!$structure->getInternal() && !in_array($template, $checkedTemplates)) {
+                $this->validatePageTemplate('page', $structure->getKey());
+            }
+        }
+    }
+
+    /**
+     * Output webspace default templates.
+     *
+     * @param Webspace $webspace
+     */
+    private function outputWebspaceTemplates(Webspace $webspace)
+    {
+        $this->output->writeln('Templates:');
+
+        foreach ($webspace->getTemplates() as $type => $template) {
+            $this->validateTemplate($type, $template . '.html.twig');
+        }
+    }
+
+    /**
+     * Output webspace localizations.
+     *
+     * @param Webspace $webspace
+     */
+    private function outputWebspaceLocalizations(Webspace $webspace)
+    {
+        $this->output->writeln('Localizations:');
+
+        foreach ($webspace->getAllLocalizations() as $localization) {
+            $this->output->writeln(
+                sprintf(
+                    '    %s',
+                    $localization->getLocale()
+                )
+            );
+        }
+    }
+
+    /**
+     * Validate page templates.
+     *
+     * @param string $type
+     * @param string $template
+     */
+    private function validatePageTemplate($type, $template)
+    {
+        $status = '<info>ok</info>';
+
+        try {
+            $this->validateStructure($type, $template);
+        } catch (\Exception $e) {
+            $status = sprintf('<error>failed: %s</error>', $e->getMessage());
+            $this->errors[] = $e->getMessage();
+        }
+
+        $this->output->writeln(
+            sprintf(
+                '    %s: %s -> %s',
+                $type,
+                $template,
+                $status
+            )
+        );
+    }
+
+    /**
+     * Is template valid.
+     *
+     * @param string $type
+     * @param string $template
+     *
+     * @return bool
+     *
+     * @throws \Exception
+     */
+    private function validateStructure($type, $template)
+    {
+        $valid = true;
+
+        $metadata = $this->structureMetadataFactory->getStructureMetadata($type, $template);
+
+        if (!$metadata) {
+            throw new \RuntimeException(
+                sprintf(
+                    'Structure meta data not found for type "%s" and template "%s".',
+                    $type,
+                    $template
+                )
+            );
+        }
+
+        foreach (['title', 'url'] as $property) {
+            if (!$metadata->hasProperty($property)) {
+                throw new \RuntimeException(
+                    sprintf(
+                        'No property "%s" found in "%s" template.',
+                        $property,
+                        $metadata->getName()
+                    )
+                );
+            }
+        }
+
+        $this->validateTwigTemplate($metadata->getView() . '.html.twig');
+        $this->validateControllerAction($metadata->getController());
+
+        return $valid;
+    }
+
+    /**
+     * Validate template.
+     *
+     * @param string $type
+     * @param string $template
+     */
+    private function validateTemplate($type, $template)
+    {
+        $status = '<info>ok</info>';
+
+        try {
+            $this->validateTwigTemplate($template);
+        } catch (\Exception $e) {
+            $status = sprintf('<error>failed: %s</error>', $e->getMessage());
+            $this->errors[] = $e->getMessage();
+        }
+
+        $this->output->writeln(
+            sprintf(
+                '    %s: %s -> %s',
+                $type,
+                $template,
+                $status
+            )
+        );
+    }
+
+    /**
+     * Validate twig template.
+     *
+     * @param string $template
+     *
+     * @throws \Exception
+     */
+    private function validateTwigTemplate($template)
+    {
+        $loader = $this->twig->getLoader();
+        if (!$loader->exists($template)) {
+            throw new \Exception(sprintf(
+                'Unable to find template "%s".',
+                $template
+            ));
+        }
+    }
+
+    /**
+     * Validate controller action.
+     *
+     * @param string $controllerAction
+     *
+     * @throws \Exception
+     */
+    private function validateControllerAction($controllerAction)
+    {
+        try {
+            $controllerAction = $this->controllerNameConverter->parse($controllerAction);
+        } catch (\InvalidArgumentException $e) {
+        }
+
+        list($class, $method) = explode('::', $controllerAction);
+
+        if (!method_exists($class, $method)) {
+            $reflector = new \ReflectionClass($class);
+
+            throw new \Exception(sprintf(
+                'Controller Action "%s" not exist in "%s" (looked into: %s).',
+                $method,
+                $class,
+                $reflector->getFileName()
+            ));
+        }
+    }
+}
